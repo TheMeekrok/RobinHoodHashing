@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-
 using namespace std;
 
 class RobinHood {
@@ -31,7 +30,7 @@ public:
 
             while (hash_table[place] != EMPTY) {
                 if (hash_table[place].second < current_PSL) {
-                    cout << "~Swapped " << temp << " and " << hash_table[place].first << endl;
+                    //cout << "~Swapped " << temp << " and " << hash_table[place].first << endl;
                     swap(temp, hash_table[place].first);
                     swap(current_PSL, hash_table[place].second);
                 }
@@ -51,11 +50,11 @@ public:
         }
     }
 
-    void look_for(string x) {
+    int look_for(string x) {
         int place = hash_(x);
 
         if (hash_table[place].first == x)
-            cout << "~Element exists [" << place << "]" << endl;
+            return place;
 
         else {
             int start_index = place + average_PSL;
@@ -66,21 +65,18 @@ public:
             while (true) {
                 if (hash_table[start_index - temp].second > min_PSL
                     && hash_table[start_index + temp].second < max_PSL) {
-                    cout << "~Element does not exist" << endl;
-                    return;
+                    return -1;
                 }
 
                 if (start_index - temp >= 0 &&
                     hash_table[start_index - temp].first == x) {
-                    cout << "~Element exists [" << start_index - temp << "]" << endl;
-                    return;
+                    return start_index - temp;
                 }
                 min_PSL = min(min_PSL, hash_table[start_index - temp].second);
 
                 if (start_index + temp < size &&
                     hash_table[start_index + temp].first == x) {
-                    cout << "~Element exists [" << start_index + temp << "]" << endl;
-                    return;
+                    return start_index + temp;
                 }
                 max_PSL = max(max_PSL, hash_table[start_index + temp].second);
 
@@ -89,21 +85,51 @@ public:
         }
     }
 
-    void print() {
+    bool remove(string x) {
+        int place = look_for(x);
+        if (place == -1)
+            return false;
+
+        hash_table[place] = EMPTY;
+
+        while (hash_table[place + 1] != EMPTY && place + 1 != size) {
+            if (hash_table[place + 1].second == 0)
+                break;
+
+            hash_table[place] = hash_table[place + 1];
+            hash_table[place + 1] = EMPTY;
+            hash_table[place].second--;
+
+            place++;
+        }
+
+        return true;
+    }
+
+    void print(int arg = 0) {
         for (int i = 0; i < size; ++i) {
-            cout << i << ".";
+            if (arg == 0) {
+                if (hash_table[i] != EMPTY)
+                    cout << i << ".[" << hash_table[i].first << ", " << hash_table[i].second << "]  ";
+            }
+            else {
+                cout << i << ".";
 
-            if (hash_table[i] == EMPTY)
-                cout << "[EMPTY]  ";
-
-            else
-                cout << "[" << hash_table[i].first << ", " << hash_table[i].second << "]  ";
+                if (hash_table[i] == EMPTY)
+                    cout << "[EMPTY]  ";
+                else
+                    cout << "[" << hash_table[i].first << ", " << hash_table[i].second << "]  ";
+            }
         }
 
         cout << endl;
     }
 private:
     int size;
+
+    uint64_t hash_A = 0x0f24544fd,
+    hash_B = 3, hash_C = 4;
+
     int average_PSL = 0;
 
     vector<pair<string, int>> hash_table;
@@ -114,7 +140,7 @@ private:
         uint64_t h = 0;
 
         for (int i = 0; i < x.size(); ++i)
-            h += (x[i] * i) ^ 0x0f24544fd;
+            h += (((x[i] ^ i) << hash_B) ^ hash_A) >> hash_C;
 
         return h % (uint64_t)size;
     }
@@ -129,23 +155,43 @@ int main() {
     cout << "you can: \n"
             "add <num> \n"
             "find <num> \n"
+            "remove <num> \n"
             "print" << endl;
 
     string user_in;
     string x;
+    int arg = 0;
+
     while (cin >> user_in) {
         if (user_in == "add") {
             cin >> x;
+
             Table->insert(x);
         }
 
         if (user_in == "find") {
             cin >> x;
-            Table->look_for(x);
+            int place = Table->look_for(x);
+
+            if (place != -1)
+                cout << "~Element exists [" << place << "]" << endl;
+            else
+                cout << "~Element does not exist" << endl;
+        }
+
+        if (user_in == "remove") {
+            cin >> x;
+            bool result = Table->remove(x);
+
+            if (result)
+                cout << "~Element was removed" << endl;
+            else
+                cout << "~Element does not exist" << endl;
         }
 
         if (user_in == "print") {
-            Table->print();
+            cin >> arg;
+            Table->print(arg);
         }
     }
 
